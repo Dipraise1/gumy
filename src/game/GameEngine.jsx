@@ -177,12 +177,16 @@ const GameEngine = ({ isActive, score, setScore, setGameOver, charSrc }) => {
         }
         
         if (frames % 150 === 0) {
-           const type = Math.random() > 0.6 ? 'WL' : 'MONEY';
+           const rand = Math.random();
+           let type = 'GEM'; // Default
+           if (rand > 0.9) type = 'KEY'; // Rare
+           else if (rand > 0.6) type = 'BOX'; // Uncommon
+           
            collectibles.push({
                x: WIDTH,
                y: GROUND_Y - 80 - Math.random() * 60,
-               width: 20, // Collectible size
-               height: 20,
+               width: 24, 
+               height: 24,
                type: type
            }); 
         }
@@ -216,9 +220,15 @@ const GameEngine = ({ isActive, score, setScore, setGameOver, charSrc }) => {
                 player.y < col.y + col.height &&
                 player.y + player.height > col.y
             ) {
-                setScore(s => s + (col.type === 'WL' ? 300 : 100));
+                // Scoring (GUBS)
+                let points = 100;
+                let color = '#06b6d4'; // Gem Cyan
+                if (col.type === 'KEY') { points = 1000; color = '#eab308'; } // Key Gold
+                if (col.type === 'BOX') { points = 500; color = '#8d6e63'; } // Box Brown
+
+                setScore(s => s + points);
                 // Spawn Sparkles
-                spawnParticles(col.x, col.y, col.type === 'WL' ? '#06b6d4' : '#eab308', 10, 'sparkle');
+                spawnParticles(col.x, col.y, color, 10, 'sparkle');
                 collectibles.splice(i, 1);
             } else if (col.x + col.width < 0) {
                 collectibles.splice(i, 1);
@@ -273,27 +283,22 @@ const GameEngine = ({ isActive, score, setScore, setGameOver, charSrc }) => {
     });
 
     collectibles.forEach(col => {
-        const isWL = col.type === 'WL';
-        const color = isWL ? '#06b6d4' : '#eab308'; 
+        let color = '#06b6d4'; // Gem
+        let char = '💎';
+        if (col.type === 'KEY') { color = '#eab308'; char = '🔑'; }
+        if (col.type === 'BOX') { color = '#8d6e63'; char = '📦'; }
         
+        ctx.fillStyle = color;
+        ctx.font = '20px serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(char, col.x + col.width/2, col.y + col.height/2 + 6);
+        
+        // Removed outline for cleaner look with emojis
+        /*
         ctx.strokeStyle = color;
-        ctx.lineWidth = 3;
-        
-        if (isWL) {
-             ctx.strokeRect(col.x, col.y, col.width, col.height);
-             ctx.fillStyle = color;
-             ctx.textAlign = 'center';
-             ctx.font = 'bold 10px monospace';
-             ctx.fillText('WL', col.x + col.width/2, col.y + col.height/2 + 3);
-        } else {
-             ctx.beginPath();
-             ctx.arc(col.x + col.width/2, col.y + col.height/2, col.width/2, 0, Math.PI*2);
-             ctx.stroke();
-             ctx.fillStyle = color;
-             ctx.textAlign = 'center';
-             ctx.font = 'bold 12px monospace';
-             ctx.fillText('$', col.x + col.width/2, col.y + col.height/2 + 4);
-        }
+        ctx.lineWidth = 2;
+        ctx.strokeRect(col.x, col.y, col.width, col.height);
+        */
     });
 
     // Player
