@@ -20,7 +20,7 @@ const GameEngine = ({ isActive, score, setScore, setGameOver, charSrc }) => {
   }, []);
 
   const state = useRef({
-    speed: 6,
+    speed: 7, // Faster start
     distance: 0,
     frames: 0,
     player: {
@@ -30,11 +30,12 @@ const GameEngine = ({ isActive, score, setScore, setGameOver, charSrc }) => {
       width: 44, 
       height: 44,
       isJumping: false,
-      jumpStrength: 13,
-      gravity: 0.6,
+      jumpStrength: 15, // Snappier
+      gravity: 0.8, // Snappier
     },
     obstacles: [],
     collectibles: [],
+    particles: [], // New Particle System
     images: {
       player: new Image(),
     }
@@ -47,22 +48,33 @@ const GameEngine = ({ isActive, score, setScore, setGameOver, charSrc }) => {
      }
   }, [charSrc]);
 
+  // Particle Spawner Helper
+  const spawnParticles = (x, y, color, count = 5, type = 'dust') => {
+      for(let i=0; i<count; i++) {
+          state.current.particles.push({
+              x, y,
+              vx: (Math.random() - 0.5) * 4,
+              vy: (Math.random() - 0.5) * 4,
+              life: 1.0,
+              color,
+              type
+          });
+      }
+  };
+
   const handleJump = () => {
     if (!isActive) return;
     const { player } = state.current;
     if (!player.isJumping) {
       player.vy = player.jumpStrength;
       player.isJumping = true;
+      // Spawn Jump Dust
+      spawnParticles(player.x + player.width/2, player.y + player.height, '#aaa', 8, 'dust');
     }
   };
-// ... (middle code unchanged)
-
 
   useEffect(() => {
-    // Prevent default touch behaviors like scroll
     const handleTouchStart = (e) => {
-        // Only prevent if touching canvas area roughly?
-        // Actually, just prevent default to stop scrolling if game is active
         if(isActive && e.target.tagName === 'CANVAS') e.preventDefault();
         handleJump();
     };
@@ -75,7 +87,7 @@ const GameEngine = ({ isActive, score, setScore, setGameOver, charSrc }) => {
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('touchstart', handleTouchStart, { passive: false });
     window.addEventListener('mousedown', handleMouseDown);
-    // state.current.images.player.src = playerSrc; // Removed to allow prop control
+    // state.current.images.player.src = playerSrc; // Legacy
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
@@ -93,13 +105,15 @@ const GameEngine = ({ isActive, score, setScore, setGameOver, charSrc }) => {
     const HEIGHT = canvas.height;
     
     ctx.clearRect(0, 0, WIDTH, HEIGHT);
+    // Background Color
     ctx.fillStyle = '#f7f7f7';
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
     if (isActive) {
       state.current.frames++;
       state.current.distance += state.current.speed;
-      state.current.speed += 0.0005; 
+      // Acceleration: speed increases by 0.001 per frame
+      state.current.speed += 0.001; 
       setScore(Math.floor(state.current.distance / 10));
     }
     
@@ -112,15 +126,37 @@ const GameEngine = ({ isActive, score, setScore, setGameOver, charSrc }) => {
   
   const updateAndDraw = (ctx, WIDTH, HEIGHT) => {
     const GROUND_Y = HEIGHT - 30; 
-    const { player, obstacles, collectibles, frames, speed } = state.current;
+    const { player, obstacles, collectibles, particles, frames, speed } = state.current;
     const COLOR_INK = '#535353';
 
+    // --- PARALLAX BACKGROUND ---
+    // Distant Layer (Clouds/Hills) - moves 1/4 speed
+    const bgPos = (state.current.distance * 0.25) % WIDTH;
+    ctx.fillStyle = '#e5e5e5';
+    // Draw 3 "mountains" wrapping
+    for(let i=0; i<=1; i++) {
+        const offset = i * WIDTH - bgPos;
+        ctx.beginPath();
+        ctx.moveTo(offset, HEIGHT);
+        ctx.lineTo(offset + WIDTH*0.3, HEIGHT - 80);
+        ctx.lineTo(offset + WIDTH*0.6, HEIGHT - 40);
+        ctx.lineTo(offset + WIDTH, HEIGHT - 100);
+        ctx.lineTo(offset + WIDTH, HEIGHT);
+        ctx.fill();
+    }
+    
+    // --- PHYSICS & LOGIC ---
     if (isActive) {
-        // Physics
+        // Player Physics
         player.y -= player.vy; 
         player.vy -= state.current.player.gravity; 
 
+        // Land on Ground
         if (player.y >= GROUND_Y - player.height) {
+            if(player.isJumping) {
+                // Landed - Spawn Landing Dust
+                spawnParticles(player.x + player.width/2, GROUND_Y, '#aaa', 5, 'dust');
+            }
             player.y = GROUND_Y - player.height;
             player.vy = 0;
             player.isJumping = false;
@@ -143,28 +179,32 @@ const GameEngine = ({ isActive, score, setScore, setGameOver, charSrc }) => {
            collectibles.push({
                x: WIDTH,
                y: GROUND_Y - 80 - Math.random() * 60,
-               width: 20,
+               width: 20, // Collectible size
                height: 20,
                type: type
            }); 
         }
 
-        // Updates
+        // Update Obstacles
         for (let i = obstacles.length - 1; i >= 0; i--) {
             const obs = obstacles[i];
             obs.x -= speed;
+            // Collision
             if (
                 player.x < obs.x + obs.width - 5 &&
                 player.x + player.width > obs.x + 5 &&
                 player.y < obs.y + obs.height - 5 &&
                 player.y + player.height > obs.y + 5
             ) {
+                // Spawn Explosion
+                spawnParticles(player.x, player.y, '#ef4444', 20, 'explosion');
                 setGameOver(true);
                 return; 
             }
             if (obs.x + obs.width < 0) obstacles.splice(i, 1);
         }
 
+        // Update Collectibles
         for (let i = collectibles.length - 1; i >= 0; i--) {
             const col = collectibles[i];
             col.x -= speed;
@@ -175,46 +215,55 @@ const GameEngine = ({ isActive, score, setScore, setGameOver, charSrc }) => {
                 player.y + player.height > col.y
             ) {
                 setScore(s => s + (col.type === 'WL' ? 300 : 100));
+                // Spawn Sparkles
+                spawnParticles(col.x, col.y, col.type === 'WL' ? '#06b6d4' : '#eab308', 10, 'sparkle');
                 collectibles.splice(i, 1);
             } else if (col.x + col.width < 0) {
                 collectibles.splice(i, 1);
             }
         }
+        
+        // Update Particles
+        for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.life -= 0.05;
+            if(p.type === 'dust') p.vy -= 0.1; // rise
+            else p.vy += 0.2; // gravity for sparks
+            
+            if(p.life <= 0) particles.splice(i, 1);
+        }
     }
 
-    // DRAWING
+    // --- DRAWING ---
+    // Ground Line
     ctx.strokeStyle = COLOR_INK;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.moveTo(0, GROUND_Y);
     ctx.lineTo(WIDTH, GROUND_Y);
     ctx.stroke();
 
-    ctx.fillStyle = '#757575';
-    for(let i=0; i<10; i++) {
-        const gx = ((state.current.distance + i*150) % WIDTH);
-        const realX = (i*150 - state.current.distance) % WIDTH;
+    // Ground Speed Lines (Foreground parallax)
+    ctx.fillStyle = '#9ca3af';
+    for(let i=0; i<12; i++) {
+        const gx = ((state.current.distance * 1.5 + i*150) % WIDTH); // 1.5x speed for foreground
+        const realX = (i*150 - state.current.distance * 1.5) % WIDTH;
         const loopX = realX < 0 ? realX + WIDTH : realX;
-        ctx.fillRect(loopX, GROUND_Y + 5 + (i%3)*4, 4, 2);
+        ctx.fillRect(loopX, GROUND_Y + 8 + (i%2)*6, 8, 3);
     }
 
-    if (state.current.images.player.complete) {
-        ctx.drawImage(state.current.images.player, player.x, player.y, player.width, player.height);
-    } else {
-        ctx.fillStyle = COLOR_INK;
-        ctx.fillRect(player.x, player.y, player.width, player.height);
-    }
+    // Draw Particles (Behind objects?) or Front? Front usually.
+    // Let's draw Obstacles first.
 
     obstacles.forEach(obs => {
-        // Color coding
-        ctx.fillStyle = obs.type === 'RUG' ? '#ef4444' : '#9333ea'; // Red or Purple
+        ctx.fillStyle = obs.type === 'RUG' ? '#ef4444' : '#9333ea'; 
         ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
         
-        // Retro bevel effect
-        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        ctx.fillStyle = 'rgba(0,0,0,0.2)'; // Shadow/Bevel
         ctx.fillRect(obs.x + 4, obs.y + 4, obs.width - 4, obs.height - 4);
 
-        // White Text
         ctx.fillStyle = 'white';
         ctx.font = 'bold 10px monospace';
         ctx.textAlign = 'center';
@@ -223,7 +272,7 @@ const GameEngine = ({ isActive, score, setScore, setGameOver, charSrc }) => {
 
     collectibles.forEach(col => {
         const isWL = col.type === 'WL';
-        const color = isWL ? '#06b6d4' : '#eab308'; // Cyan or Gold
+        const color = isWL ? '#06b6d4' : '#eab308'; 
         
         ctx.strokeStyle = color;
         ctx.lineWidth = 3;
@@ -245,20 +294,36 @@ const GameEngine = ({ isActive, score, setScore, setGameOver, charSrc }) => {
         }
     });
 
-    const cloudSpeed = state.current.distance * 0.2;
-    ctx.fillStyle = '#d1d1d1'; 
-    const cloudY = HEIGHT * 0.2; // responsive cloud height
-    const cloudX = (WIDTH - (cloudSpeed % (WIDTH + 100)));
-    ctx.fillRect(cloudX, cloudY, 40, 10);
-    ctx.fillRect(cloudX + 10, cloudY - 10, 20, 10);
+    // Player
+    if (state.current.images.player.complete) {
+        ctx.drawImage(state.current.images.player, player.x, player.y, player.width, player.height);
+    } else {
+        ctx.fillStyle = COLOR_INK;
+        ctx.fillRect(player.x, player.y, player.width, player.height);
+    }
+    
+    // Draw Particles
+    particles.forEach(p => {
+        ctx.globalAlpha = p.life;
+        ctx.fillStyle = p.color;
+        const size = p.type === 'dust' ? 4 : 3;
+        ctx.fillRect(p.x, p.y, size, size);
+    });
+    ctx.globalAlpha = 1.0;
+
   };
 
   useEffect(() => {
     if (isActive) {
+        // Reset
+        state.current.player.y = 300; 
+        state.current.player.vy = 0;
         state.current.obstacles = [];
         state.current.collectibles = [];
+        state.current.particles = [];
         state.current.distance = 0;
-        state.current.speed = 6;
+        state.current.speed = 7; // Reset speed
+        
         requestRef.current = requestAnimationFrame(animate);
     } else {
         const canvas = canvasRef.current;
@@ -267,14 +332,14 @@ const GameEngine = ({ isActive, score, setScore, setGameOver, charSrc }) => {
         }
     }
     return () => cancelAnimationFrame(requestRef.current);
-  }, [isActive, dimensions]); // Redraw on resize
+  }, [isActive, dimensions]); 
 
   return (
     <canvas 
       ref={canvasRef} 
       width={dimensions.width} 
       height={dimensions.height} 
-      className="max-w-full border-b border-[#535353]"
+      className="max-w-full border-b border-[#535353] bg-[#f7f7f7]"
     />
   );
 };
