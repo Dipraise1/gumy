@@ -112,8 +112,8 @@ const GameEngine = ({ isActive, score, setScore, setGameOver, charSrc }) => {
     if (isActive) {
       state.current.frames++;
       state.current.distance += state.current.speed;
-      // Acceleration: speed increases by 0.001 per frame
-      state.current.speed += 0.001; 
+      // Acceleration: speed increases by 0.0001 per frame (Slower ramp up)
+      state.current.speed += 0.0001; 
       setScore(Math.floor(state.current.distance / 10));
     }
     
