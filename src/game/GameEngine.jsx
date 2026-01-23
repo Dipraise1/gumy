@@ -21,7 +21,7 @@ const GameEngine = ({ isActive, score, setScore, setGameOver, charSrc }) => {
   }, []);
 
   const state = useRef({
-    speed: 7, // Faster start
+    speed: 5, // Reduced from 7
     distance: 0,
     frames: 0,
     player: {
@@ -113,8 +113,8 @@ const GameEngine = ({ isActive, score, setScore, setGameOver, charSrc }) => {
     if (isActive) {
       state.current.frames++;
       state.current.distance += state.current.speed;
-      // Acceleration: speed increases by 0.0005 per frame (5x faster than previous)
-      state.current.speed += 0.0005; 
+      // Acceleration: Reduced to 0.0001 based on user feedback "too fast"
+      state.current.speed += 0.0001; 
       setScore(Math.floor(state.current.distance / 10));
     }
     
@@ -329,7 +329,7 @@ const GameEngine = ({ isActive, score, setScore, setGameOver, charSrc }) => {
         state.current.collectibles = [];
         state.current.particles = [];
         state.current.distance = 0;
-        state.current.speed = 7; // Reset speed
+        state.current.speed = 5; // Reduced from 7
         
         requestRef.current = requestAnimationFrame(animate);
     } else {
