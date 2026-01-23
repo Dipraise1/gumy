@@ -164,7 +164,8 @@ const GameEngine = ({ isActive, score, setScore, setGameOver, charSrc }) => {
         }
 
         // Spawning
-        if (frames % 100 === 0 && Math.random() > 0.4) {
+        // Increased frequency: check every 60 frames (was 100)
+        if (frames % 60 === 0 && Math.random() > 0.3) {
             const type = Math.random() > 0.5 ? 'RUG' : 'REKT';
             obstacles.push({
                 x: WIDTH,
