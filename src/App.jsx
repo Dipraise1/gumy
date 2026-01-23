@@ -63,10 +63,10 @@ const GameContent = () => {
                <WalletMultiButton style={{ backgroundColor: '#535353', height: '36px', fontSize: '14px' }} />
             </div>
 
-            {/* Retro Title */}
-            <h1 className="text-3xl md:text-5xl font-bold mb-4 md:mb-10 tracking-widest text-[#535353] mt-12 md:mt-0">G U B B Y</h1>
+            {/* Retro Title - Hide in Landscape Mobile for space */}
+            <h1 className="text-3xl md:text-5xl font-bold mb-4 md:mb-10 tracking-widest text-[#535353] mt-12 md:mt-0 landscape:hidden">G U B B Y</h1>
             
-            <div className="relative w-full max-w-[800px] px-2 md:px-0">
+            <div className="relative w-full max-w-[800px] landscape:max-w-full px-2 md:px-0 landscape:px-0">
                 <GameEngine 
                     isActive={isActive} 
                     score={score} 
