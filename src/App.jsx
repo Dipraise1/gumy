@@ -53,7 +53,7 @@ const GameContent = () => {
     }, [isConnected, signMessageAsync, score]);
 
     return (
-        <div className="h-screen w-full bg-[#f7f7f7] flex flex-col items-center justify-center font-mono text-[#535353] select-none overflow-hidden touch-none">
+        <div className="h-dvh w-full bg-[#f7f7f7] flex flex-col items-center justify-center font-mono text-[#535353] select-none overflow-hidden touch-none landscape:p-0 landscape:m-0">
             {/* Header / Wallet */}
             <div className="absolute top-4 right-4 z-50">
                <ConnectButton showBalance={false} chainStatus="none" />
