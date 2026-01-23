@@ -56,23 +56,7 @@ const GameEngine = ({ isActive, score, setScore, setGameOver, charSrc }) => {
     }
   };
 // ... (middle code unchanged)
-    ctx.fillStyle = '#757575';
-    for(let i=0; i<10; i++) {
-        const gx = ((state.current.distance + i*150) % WIDTH);
-        const realX = (i*150 - state.current.distance) % WIDTH;
-        const loopX = realX < 0 ? realX + WIDTH : realX;
-        ctx.fillRect(loopX, GROUND_Y + 5 + (i%3)*4, 4, 2);
-    }
 
-    // Removed Grayscale filter as requested
-    // ctx.filter = 'grayscale(100%) contrast(1.2)'; 
-    if (state.current.images.player.complete) {
-        ctx.drawImage(state.current.images.player, player.x, player.y, player.width, player.height);
-    } else {
-        ctx.fillStyle = COLOR_INK;
-        ctx.fillRect(player.x, player.y, player.width, player.height);
-    }
-    // ctx.filter = 'none';
 
   useEffect(() => {
     // Prevent default touch behaviors like scroll
@@ -91,7 +75,7 @@ const GameEngine = ({ isActive, score, setScore, setGameOver, charSrc }) => {
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('touchstart', handleTouchStart, { passive: false });
     window.addEventListener('mousedown', handleMouseDown);
-    state.current.images.player.src = playerSrc;
+    // state.current.images.player.src = playerSrc; // Removed to allow prop control
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
@@ -214,14 +198,12 @@ const GameEngine = ({ isActive, score, setScore, setGameOver, charSrc }) => {
         ctx.fillRect(loopX, GROUND_Y + 5 + (i%3)*4, 4, 2);
     }
 
-    ctx.filter = 'grayscale(100%) contrast(1.2)';
     if (state.current.images.player.complete) {
         ctx.drawImage(state.current.images.player, player.x, player.y, player.width, player.height);
     } else {
         ctx.fillStyle = COLOR_INK;
         ctx.fillRect(player.x, player.y, player.width, player.height);
     }
-    ctx.filter = 'none';
 
     obstacles.forEach(obs => {
         // Color coding
