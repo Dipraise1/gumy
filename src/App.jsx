@@ -141,7 +141,7 @@ const GameContent = () => {
                 )}
 
                 {/* HUD */}
-                <div className="absolute top-2 right-4 text-[#535353] font-bold text-lg md:text-xl">
+                <div className="absolute top-4 left-4 text-[#535353] font-bold text-lg md:text-xl">
                     {score.toString().padStart(5, '0')} GUBS
                 </div>
             </div>
