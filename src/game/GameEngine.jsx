@@ -11,8 +11,8 @@ const GameEngine = ({ isActive, score, setScore, setGameOver, charSrc }) => {
   useEffect(() => {
     const handleResize = () => {
        const isLandscape = window.innerWidth > window.innerHeight;
-       const width = isLandscape ? window.innerWidth : Math.min(window.innerWidth - 20, 800);
-       const height = isLandscape ? window.innerHeight : (width < 500 ? 200 : 300);
+       const width = isLandscape ? window.innerWidth : Math.min(window.innerWidth - 20, 1200);
+       const height = isLandscape ? window.innerHeight : (width < 600 ? 300 : 500);
        setDimensions({ width, height });
     };
     window.addEventListener('resize', handleResize);

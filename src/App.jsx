@@ -135,7 +135,7 @@ const GameContent = () => {
                 <h1 className="text-3xl md:text-5xl font-bold mb-4 md:mb-10 tracking-widest text-[#535353] mt-12 md:mt-0 landscape:hidden">G U B B Y</h1>
             )}
             
-            <div className="relative w-full max-w-[800px] landscape:max-w-full px-2 md:px-0 landscape:px-0">
+            <div className="relative w-full max-w-[1200px] landscape:max-w-full px-2 md:px-0 landscape:px-0">
                 <GameEngine 
                     isActive={isActive} 
                     score={score} 
@@ -226,7 +226,31 @@ const GameContent = () => {
     )
 }
 
+import LandingPage from './game/LandingPage'
+import MenuPage from './game/MenuPage'
+import LeaderboardPage from './game/LeaderboardPage'
+
 function App() {
+  const [view, setView] = useState('LANDING'); // 'LANDING', 'MENU', 'GAME', 'LEADERBOARD'
+
+  if (view === 'LANDING') {
+    return <LandingPage onUncover={() => setView('MENU')} />
+  }
+
+  if (view === 'MENU') {
+    return (
+        <MenuPage 
+            onPlay={() => setView('GAME')} 
+            onLeaderboard={() => setView('LEADERBOARD')}
+        />
+    )
+  }
+
+  if (view === 'LEADERBOARD') {
+      return <LeaderboardPage onBack={() => setView('MENU')} />
+  }
+
+  // view === 'GAME'
   return (
     <Web3Provider>
        <GameContent />
