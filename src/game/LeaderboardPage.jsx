@@ -2,12 +2,8 @@ import React from 'react';
 import Navbar from './Navbar';
 
 const LeaderboardPage = ({ onBack }) => {
-    // Mock Data based on image (Extended to 100)
-    const scores = Array.from({ length: 100 }, (_, i) => ({
-        rank: i + 1,
-        name: i < 5 ? ['Prince', 'Priase', 'Emeka', 'Thanos', 'THOR'][i] : `Gubby #${i + 1}`,
-        score: i < 5 ? [1000, 890, 750, 600, 350][i] : Math.floor(350 - (i * 3))
-    }));
+    // Data cleared for real integration later
+    const scores = [];
 
     return (
         <div className="w-full h-dvh bg-white flex flex-col items-center justify-start font-mono relative">

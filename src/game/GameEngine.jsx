@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState } from 'react';
 import playerSrc from '../assets/player.jpg';
+import SoundManager from './SoundManager';
 
 const GameEngine = ({ isActive, score, setScore, setGameOver, charSrc }) => {
   const canvasRef = useRef(null);
@@ -11,8 +12,15 @@ const GameEngine = ({ isActive, score, setScore, setGameOver, charSrc }) => {
   useEffect(() => {
     const handleResize = () => {
        const isLandscape = window.innerWidth > window.innerHeight;
-       const width = isLandscape ? window.innerWidth : Math.min(window.innerWidth - 20, 1200);
-       const height = isLandscape ? window.innerHeight : (width < 600 ? 300 : 500);
+       // For PC (large screens), we might want to constrain height/width so it extends but doesn't stretch too thin or tall
+       const width = window.innerWidth > 1024 
+            ? Math.min(window.innerWidth - 40, 1600) // PC: Larger, bolder width
+            : (isLandscape ? window.innerWidth : Math.min(window.innerWidth - 20, 1200));
+            
+       const height = window.innerWidth > 1024 
+            ? 700 // PC: Taller for more impact
+            : (isLandscape ? window.innerHeight : (width < 600 ? 300 : 500));
+            
        setDimensions({ width, height });
     };
     window.addEventListener('resize', handleResize);
@@ -21,7 +29,7 @@ const GameEngine = ({ isActive, score, setScore, setGameOver, charSrc }) => {
   }, []);
 
   const state = useRef({
-    speed: 5, // Reduced from 7
+    speed: 1.8, // Much slower start, ramps up gradually
     distance: 0,
     frames: 0,
     player: {
@@ -65,12 +73,17 @@ const GameEngine = ({ isActive, score, setScore, setGameOver, charSrc }) => {
 
   const handleJump = () => {
     if (!isActive) return;
+    
+    // Init Audio on first interaction
+    SoundManager.init();
+    
     const { player } = state.current;
     if (!player.isJumping) {
       player.vy = player.jumpStrength;
       player.isJumping = true;
       // Spawn Jump Dust
       spawnParticles(player.x + player.width/2, player.y + player.height, '#aaa', 8, 'dust');
+      SoundManager.playJump();
     }
   };
 
@@ -190,11 +203,14 @@ const GameEngine = ({ isActive, score, setScore, setGameOver, charSrc }) => {
                type: type
            }); 
         }
+        
+        // Progressive Speed (Slower ramp)
+        const currentSpeed = Math.min(10, state.current.speed + state.current.distance / 1000);
 
         // Update Obstacles
         for (let i = obstacles.length - 1; i >= 0; i--) {
             const obs = obstacles[i];
-            obs.x -= speed;
+            obs.x -= currentSpeed;
             // Collision
             if (
                 player.x < obs.x + obs.width - 5 &&
@@ -204,6 +220,7 @@ const GameEngine = ({ isActive, score, setScore, setGameOver, charSrc }) => {
             ) {
                 // Spawn Explosion
                 spawnParticles(player.x, player.y, '#ef4444', 20, 'explosion');
+                SoundManager.playDie();
                 setGameOver(true);
                 return; 
             }
@@ -227,6 +244,7 @@ const GameEngine = ({ isActive, score, setScore, setGameOver, charSrc }) => {
                 if (col.type === 'BOX') { points = 500; color = '#8d6e63'; } // Box Brown
 
                 setScore(s => s + points);
+                SoundManager.playScore(col.type);
                 // Spawn Sparkles
                 spawnParticles(col.x, col.y, color, 10, 'sparkle');
                 collectibles.splice(i, 1);
@@ -260,6 +278,7 @@ const GameEngine = ({ isActive, score, setScore, setGameOver, charSrc }) => {
     // Ground Speed Lines (Foreground parallax)
     ctx.fillStyle = '#9ca3af';
     for(let i=0; i<12; i++) {
+        const currentSpeed = Math.min(10, state.current.speed + state.current.distance / 1000); // Progressive Speed (Slower ramp)
         const gx = ((state.current.distance * 1.5 + i*150) % WIDTH); // 1.5x speed for foreground
         const realX = (i*150 - state.current.distance * 1.5) % WIDTH;
         const loopX = realX < 0 ? realX + WIDTH : realX;

@@ -81,19 +81,34 @@ const GameContent = ({ onHome }) => {
     }, [isConnected, signMessageAsync, score]);
 
     return (
-        <div className="h-dvh w-full bg-[#f7f7f7] flex flex-col items-center justify-start font-mono text-[#535353] select-none overflow-hidden touch-none landscape:p-0 landscape:m-0">
-            {/* Navbar */}
+        <div className="h-dvh w-full bg-[#f7f7f7] flex flex-col items-center md:items-end justify-start font-mono text-[#535353] select-none overflow-hidden touch-none landscape:p-0 landscape:m-0">
+            {/* Navbar - Mobile Only */}
             <Navbar 
                 onHome={onHome} 
                 onProfile={() => setShowProfile(!showProfile)} 
             />
 
+            {/* Desktop Header / Wallet (Restored for PC since Navbar is hidden) */}
+            <div className="hidden md:flex absolute top-4 right-4 z-50 gap-2">
+               {!isActive && (
+                   <button 
+                     onClick={() => setShowProfile(!showProfile)}
+                     className="bg-[#535353] text-white px-3 py-1 rounded font-bold hover:bg-[#333]"
+                   >
+                     👤
+                   </button>
+               )}
+               <ConnectButton showBalance={false} chainStatus="none" accountStatus={{ smallScreen: 'avatar', largeScreen: 'full' }} />
+            </div>
 
-            {/* Profile Modal */}
+            {/* Centered wrapper for game content on mobile */}
+            <div className="flex-1 w-full flex flex-col items-center justify-center md:justify-center md:mt-12">
+
+            {/* Profile Modal - Modern Glassmorphism */}
             {showProfile && !isActive && (
-                <div className="absolute inset-0 z-40 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm border-2 border-[#535353] text-center relative">
-                        <button onClick={() => setShowProfile(false)} className="absolute top-2 right-2 text-xl font-bold">×</button>
+                <div className="absolute inset-0 z-40 bg-black/60 backdrop-blur-md flex items-center justify-center p-6 animate-fadeIn">
+                    <div className="bg-white/95 backdrop-blur-lg p-8 rounded-3xl shadow-2xl w-full max-w-sm border border-gray-200 text-center relative">
+                        <button onClick={() => setShowProfile(false)} className="absolute top-4 right-4 text-2xl font-bold text-gray-400 hover:text-gray-600 transition-colors w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100">×</button>
                         <h2 className="text-2xl font-bold mb-4 uppercase border-b border-gray-200 pb-2">Profile</h2>
                         
                         <div className="mb-6">
@@ -126,9 +141,9 @@ const GameContent = ({ onHome }) => {
                 </div>
             )}
 
-            {/* Retro Title - Hide in Landscape Mobile for space, AND hide on Game Over to prevent overlap */}
+            {/* Modern Title */}
             {!isGameOver && !isActive && (
-                <h1 className="text-3xl md:text-5xl font-bold mb-4 md:mb-10 tracking-widest text-[#535353] mt-12 md:mt-0 landscape:hidden">G U B B Y</h1>
+                <h1 className="text-5xl md:text-6xl font-black mb-6 md:mb-10 tracking-wider bg-gradient-to-r from-[#10b981] to-[#06b6d4] bg-clip-text text-transparent mt-8 md:mt-0 landscape:hidden drop-shadow-sm">GUBBY</h1>
             )}
             
             <div className="relative w-full max-w-[1200px] landscape:max-w-full px-2 md:px-0 landscape:px-0">
@@ -141,44 +156,43 @@ const GameContent = ({ onHome }) => {
                 />
                 
                 {(!isActive || isGameOver) && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-[#f7f7f7]/90 backdrop-blur-[2px]">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-white/80 backdrop-blur-md rounded-2xl">
                         {isGameOver && (
-                             <div className="text-center mb-4">
-                                 <h2 className="text-[#535353] text-2xl font-bold mb-2">GAME OVER</h2>
-                                 <p className="text-xl mb-4 font-bold">{score} GUBS</p>
+                              <div className="text-center mb-6">
+                                 <h2 className="text-gray-800 text-3xl font-black mb-3 tracking-wide">GAME OVER</h2>
+                                 <p className="text-2xl mb-4 font-black bg-gradient-to-r from-[#10b981] to-[#06b6d4] bg-clip-text text-transparent">{score} GUBS</p>
                              </div>
                         )}
 
-                        {/* Character Select */}
+                        {/* Character Select - Modern Cards */}
                         {!isActive && !isGameOver && (
-                            <div className="mb-6 text-center">
-                                <p className="text-xs font-bold mb-2 uppercase text-[#535353]">Select Runner</p>
-                                <div className="flex gap-4 justify-center">
+                            <div className="mb-8 text-center">
+                                <p className="text-sm font-bold mb-4 uppercase text-gray-600 tracking-wide">Select Runner</p>
+                                <div className="flex gap-6 justify-center">
                                     <button 
                                         onClick={() => setSelectedChar(player1Src)}
-                                        className={`p-2 border-2 rounded transition-all ${selectedChar === player1Src ? 'border-[#10b981] bg-[#e0f2fe]' : 'border-gray-300 opacity-50'}`}
+                                        className={`p-3 border-3 rounded-2xl transition-all transform hover:scale-105 ${selectedChar === player1Src ? 'border-[#10b981] bg-gradient-to-br from-[#d1fae5] to-white shadow-lg shadow-[#10b981]/30' : 'border-gray-300 opacity-60 hover:opacity-80'}`}
                                     >
-                                        <img src={player1Src} alt="Player 1" className="w-12 h-12 object-contain" />
+                                        <img src={player1Src} alt="Player 1" className="w-16 h-16 object-contain" />
                                     </button>
                                     <button 
                                         onClick={() => setSelectedChar(player2Src)}
-                                        className={`p-2 border-2 rounded transition-all ${selectedChar === player2Src ? 'border-[#10b981] bg-[#e0f2fe]' : 'border-gray-300 opacity-50'}`}
+                                        className={`p-3 border-3 rounded-2xl transition-all transform hover:scale-105 ${selectedChar === player2Src ? 'border-[#10b981] bg-gradient-to-br from-[#d1fae5] to-white shadow-lg shadow-[#10b981]/30' : 'border-gray-300 opacity-60 hover:opacity-80'}`}
                                     >
-                                        <img src={player2Src} alt="Player 2" className="w-12 h-12 object-contain" />
+                                        <img src={player2Src} alt="Player 2" className="w-16 h-16 object-contain" />
                                     </button>
                                 </div>
                             </div>
                         )}
-                        
-                        {!isActive && !isGameOver && (
-                            <p className="mb-4 text-sm text-[#535353]">Tap / Click / Space to Jump</p>
+                                                {!isActive && !isGameOver && (
+                            <p className="mb-6 text-base text-gray-500 font-medium">Tap / Click / Space to Jump</p>
                         )}
 
-                        <button 
+                         <button 
                             onClick={startGame}
-                            className="mb-6 px-6 py-2 bg-[#10b981] text-white font-bold rounded shadow-[4px_4px_0px_#064e3b] active:translate-y-1 active:shadow-none transition-all hover:bg-[#059669]"
+                            className="mb-8 px-12 py-4 bg-gradient-to-r from-[#10b981] to-[#059669] text-white text-lg font-black rounded-full shadow-lg shadow-[#10b981]/50 active:scale-95 transition-all hover:shadow-xl hover:shadow-[#10b981]/60 min-w-[200px]"
                         >
-                            {isGameOver ? 'RETRY' : 'START'}
+                            {isGameOver ? '🔄 RETRY' : '▶ START'}
                         </button>
 
                         {/* Clan Feature */}
@@ -208,9 +222,9 @@ const GameContent = ({ onHome }) => {
                     </div>
                 )}
 
-                {/* HUD */}
-                <div className="absolute top-4 left-4 text-[#535353] font-bold text-lg md:text-xl">
-                    {score.toString().padStart(5, '0')} GUBS
+                {/* HUD - Modern with glassmorphism */}
+                <div className="absolute top-4 left-4 bg-white/80 backdrop-blur-md px-4 py-2 rounded-full shadow-lg border border-white/40">
+                    <div className="text-gray-800 font-black text-lg md:text-xl">{score.toString().padStart(5, '0')} <span className="text-[#10b981]">GUBS</span></div>
                 </div>
             </div>
 
@@ -218,6 +232,7 @@ const GameContent = ({ onHome }) => {
             <div className="md:hidden mt-4 text-[10px] text-gray-400">
                 Landscape Mode Recommended
             </div>
+            </div> {/* Close centered wrapper */}
         </div>
     )
 }
@@ -229,27 +244,22 @@ import LeaderboardPage from './game/LeaderboardPage'
 function App() {
   const [view, setView] = useState('LANDING'); // 'LANDING', 'MENU', 'GAME', 'LEADERBOARD'
 
-  if (view === 'LANDING') {
-    return <LandingPage onUncover={() => setView('MENU')} />
-  }
-
-  if (view === 'MENU') {
-    return (
+  return (
+    <Web3Provider>
+      {view === 'LANDING' && <LandingPage onUncover={() => setView('MENU')} />}
+      
+      {view === 'MENU' && (
         <MenuPage 
             onPlay={() => setView('GAME')} 
             onLeaderboard={() => setView('LEADERBOARD')}
         />
-    )
-  }
+      )}
 
-  if (view === 'LEADERBOARD') {
-      return <LeaderboardPage onBack={() => setView('MENU')} />
-  }
+      {view === 'LEADERBOARD' && (
+          <LeaderboardPage onBack={() => setView('MENU')} />
+      )}
 
-  // view === 'GAME'
-  return (
-    <Web3Provider>
-       <GameContent onHome={() => setView('MENU')} />
+      {view === 'GAME' && <GameContent onHome={() => setView('MENU')} />}
     </Web3Provider>
   )
 }
