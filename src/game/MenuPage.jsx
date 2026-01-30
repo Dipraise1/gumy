@@ -11,7 +11,7 @@ const MenuPage = ({ onPlay, onLeaderboard }) => {
                 <div className="bg-[#dcdcdc] rounded-[30px] border-[5px] border-black p-8 flex flex-col justify-center items-start shadow-[8px_8px_0px_rgba(0,0,0,1)]">
                     <h2 className="text-4xl md:text-5xl font-black mb-6 uppercase tracking-tight">WHAT?</h2>
                     <p className="text-sm md:text-base font-bold mb-4">
-                        Bunch of pixelated retards curating more than chaos on Avax, with zero iq and lots of Odyssey.
+                        Bunch of pixelated retards curating more than chaos on Eth, with zero iq and lots of Odyssey.
                     </p>
                     <p className="text-sm md:text-base font-bold mb-4">
                         ROADMAP? I don't know too.
