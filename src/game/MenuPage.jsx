@@ -1,8 +1,10 @@
 import React from 'react';
+import Navbar from './Navbar';
 
 const MenuPage = ({ onPlay, onLeaderboard }) => {
     return (
-        <div className="w-full h-dvh bg-white flex flex-col items-center justify-between p-4 md:p-8 font-mono overflow-auto">
+        <div className="w-full h-dvh bg-white flex flex-col items-center justify-start font-mono overflow-auto">
+            <Navbar onHome={() => {}} />
             
             {/* Main Grid */}
             <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 grow mb-8">

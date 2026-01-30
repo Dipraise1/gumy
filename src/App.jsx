@@ -9,7 +9,9 @@ import './index.css'
 import player1Src from './assets/player.png'
 import player2Src from './assets/player2.png'
 
-const GameContent = () => {
+import Navbar from './game/Navbar'
+
+const GameContent = ({ onHome }) => {
     const [score, setScore] = useState(0)
     const [isGameOver, setIsGameOver] = useState(false)
     const [isActive, setIsActive] = useState(false)
@@ -79,19 +81,13 @@ const GameContent = () => {
     }, [isConnected, signMessageAsync, score]);
 
     return (
-        <div className="h-dvh w-full bg-[#f7f7f7] flex flex-col items-center justify-center font-mono text-[#535353] select-none overflow-hidden touch-none landscape:p-0 landscape:m-0">
-            {/* Header / Wallet */}
-            <div className="absolute top-4 right-4 z-50 flex gap-2">
-               {!isActive && (
-                   <button 
-                     onClick={() => setShowProfile(!showProfile)}
-                     className="bg-[#535353] text-white px-3 py-1 rounded font-bold hover:bg-[#333]"
-                   >
-                     👤
-                   </button>
-               )}
-               <ConnectButton showBalance={false} chainStatus="none" accountStatus={{ smallScreen: 'avatar', largeScreen: 'full' }} />
-            </div>
+        <div className="h-dvh w-full bg-[#f7f7f7] flex flex-col items-center justify-start font-mono text-[#535353] select-none overflow-hidden touch-none landscape:p-0 landscape:m-0">
+            {/* Navbar */}
+            <Navbar 
+                onHome={onHome} 
+                onProfile={() => setShowProfile(!showProfile)} 
+            />
+
 
             {/* Profile Modal */}
             {showProfile && !isActive && (
@@ -253,7 +249,7 @@ function App() {
   // view === 'GAME'
   return (
     <Web3Provider>
-       <GameContent />
+       <GameContent onHome={() => setView('MENU')} />
     </Web3Provider>
   )
 }

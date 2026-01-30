@@ -1,4 +1,5 @@
 import React from 'react';
+import Navbar from './Navbar';
 
 const LeaderboardPage = ({ onBack }) => {
     // Mock Data based on image (Extended to 100)
@@ -9,7 +10,10 @@ const LeaderboardPage = ({ onBack }) => {
     }));
 
     return (
-        <div className="w-full h-dvh bg-white flex flex-col items-center justify-center p-4 font-mono relative">
+        <div className="w-full h-dvh bg-white flex flex-col items-center justify-start font-mono relative">
+            <Navbar onHome={onBack} />
+            
+            <div className="h-4"></div>
             
             {/* Title */}
             <h1 className="text-3xl md:text-5xl font-black uppercase mb-4 md:mb-6 tracking-wider">GUBBOARD</h1>
