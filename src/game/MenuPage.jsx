@@ -64,9 +64,14 @@ const MenuPage = ({ onPlay, onLeaderboard }) => {
 
                 {/* X Logo / Links - Placeholder positioning */}
                 <div className="md:absolute right-0 flex gap-2">
-                    <div className="w-10 h-10 bg-[#dcdcdc] border-[3px] border-black flex items-center justify-center font-black text-xl rounded shadow-[2px_2px_0px_rgba(0,0,0,1)]">
+                    <a 
+                        href="https://x.com/gubyverse" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="w-10 h-10 bg-[#dcdcdc] border-[3px] border-black flex items-center justify-center font-black text-xl rounded shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:scale-105 transition-transform cursor-pointer active:translate-y-1 active:shadow-none"
+                    >
                         X
-                    </div>
+                    </a>
                 </div>
             </div>
         </div>

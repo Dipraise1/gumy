@@ -30,8 +30,8 @@ const GameContent = ({ onHome }) => {
 
     // Stats Logic
     const getRank = (points) => {
-        if (points >= 500000) return { title: 'WARLORD', next: null, min: 500000 };
-        if (points >= 150000) return { title: 'ELITE', next: 500000, min: 150000 };
+        if (points >= 1000000) return { title: 'WARLORD', next: null, min: 1000000 };
+        if (points >= 150000) return { title: 'ELITE', next: 1000000, min: 150000 };
         if (points >= 50000) return { title: 'RUNNER', next: 150000, min: 50000 };
         if (points >= 10000) return { title: 'SCOUT', next: 50000, min: 10000 };
         return { title: 'NEWBIE', next: 10000, min: 0 };
@@ -199,11 +199,11 @@ const GameContent = ({ onHome }) => {
                         {isGameOver && (
                             <div className="mb-6 flex flex-col items-center">
                                 <button 
-                                    disabled={totalGUBS < 500000} // Changed to Total Stats requirement
-                                    className={`px-4 py-2 text-xs font-bold rounded border ${totalGUBS >= 500000 ? 'bg-[#9333ea] text-white border-[#9333ea] shadow-[2px_2px_0px_#581c87]' : 'bg-gray-200 text-gray-400 border-gray-300 cursor-not-allowed'}`}
+                                    disabled={totalGUBS < 1000000} // Changed to Total Stats requirement
+                                    className={`px-4 py-2 text-xs font-bold rounded border ${totalGUBS >= 1000000 ? 'bg-[#9333ea] text-white border-[#9333ea] shadow-[2px_2px_0px_#581c87]' : 'bg-gray-200 text-gray-400 border-gray-300 cursor-not-allowed'}`}
                                     onClick={() => alert("Clan Creation Portal Opening Soon...")}
                                 >
-                                    CREATE CLAN (Requires 500k Total GUBS)
+                                    CREATE CLAN (Requires 1M Total GUBS)
                                 </button>
                                 <p className="text-[10px] text-gray-400 mt-1">Total: {totalGUBS.toLocaleString()} GUBS</p>
                             </div>

@@ -51,9 +51,14 @@ const LeaderboardPage = ({ onBack }) => {
 
             {/* Bottom Right Logo */}
             <div className="absolute bottom-8 right-8">
-                 <div className="w-12 h-12 bg-[#dcdcdc] border-[3px] border-black flex items-center justify-center font-black text-2xl rounded shadow-[2px_2px_0px_rgba(0,0,0,1)] cursor-pointer hover:scale-105 transition-transform">
+                 <a 
+                    href="https://x.com/gubyverse" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="w-12 h-12 bg-[#dcdcdc] border-[3px] border-black flex items-center justify-center font-black text-2xl rounded shadow-[2px_2px_0px_rgba(0,0,0,1)] cursor-pointer hover:scale-105 transition-transform active:translate-y-1 active:shadow-none"
+                >
                     X
-                </div>
+                </a>
             </div>
             
             {/* Temporary Back Button for Usability */}

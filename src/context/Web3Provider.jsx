@@ -1,13 +1,13 @@
 import '@rainbow-me/rainbowkit/styles.css';
 import { getDefaultConfig, RainbowKitProvider } from '@rainbow-me/rainbowkit';
 import { WagmiProvider } from 'wagmi';
-import { avalanche } from 'wagmi/chains';
+import { mainnet } from 'wagmi/chains';
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 
 const config = getDefaultConfig({
   appName: 'Gubby',
   projectId: 'YOUR_PROJECT_ID', // Replaced with a placeholder or public one if needed, but standard for rainbowkit requirement
-  chains: [avalanche],
+  chains: [mainnet],
   ssr: false, // Vite
 });
 
