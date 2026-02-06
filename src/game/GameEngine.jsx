@@ -2,7 +2,7 @@ import { useRef, useEffect, useState } from 'react';
 import playerSrc from '../assets/player.jpg';
 import SoundManager from './SoundManager';
 
-const GameEngine = ({ isActive, score, setScore, setGameOver, charSrc }) => {
+const GameEngine = ({ isActive, isPaused, score, setScore, setGameOver, charSrc }) => {
   const canvasRef = useRef(null);
   const requestRef = useRef();
   
@@ -72,7 +72,7 @@ const GameEngine = ({ isActive, score, setScore, setGameOver, charSrc }) => {
   };
 
   const handleJump = () => {
-    if (!isActive) return;
+    if (!isActive || isPaused) return;
     
     // Init Audio on first interaction
     SoundManager.init();
@@ -122,6 +122,14 @@ const GameEngine = ({ isActive, score, setScore, setGameOver, charSrc }) => {
     // Background Color
     ctx.fillStyle = '#f7f7f7';
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    
+    // Check Pause
+    if (isPaused) {
+       // Just draw the last state, do not update physics
+       updateAndDraw(ctx, WIDTH, HEIGHT);
+       requestRef.current = requestAnimationFrame(animate);
+       return;
+    }
 
     if (isActive) {
       state.current.frames++;

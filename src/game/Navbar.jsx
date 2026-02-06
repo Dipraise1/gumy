@@ -3,7 +3,7 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 
 const Navbar = ({ onHome, onProfile }) => {
     return (
-        <nav className="w-full bg-white border-b-[4px] border-black py-4 px-6 md:px-8 flex items-center justify-between sticky top-0 z-50 shadow-md h-[80px] md:hidden">
+        <nav className="w-full bg-white border-4 border-black rounded-2xl py-4 px-6 md:px-8 flex items-center justify-between shadow-[4px_4px_0px_rgba(0,0,0,1)] h-[80px] md:hidden">
             {/* Left: Logo */}
             <div 
                 onClick={onHome}
