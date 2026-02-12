@@ -347,36 +347,36 @@ const GameContent = ({ onHome, onLeaderboard }) => {
                                  </div>
                             )}
 
-                        {/* Character Select - Modern Cards */}
+                        {/* Character Select */}
                         {!isActive && !isGameOver && (
-                            <div className="mb-8 text-center">
-                                <p className="text-sm font-bold mb-4 uppercase text-gray-600 tracking-wide">Select Runner</p>
-                                <div className="flex gap-6 justify-center">
-                            {/* Character Select */}
-                            {!isActive && !isGameOver && (
-                                <div className="mb-8 w-full">
-                                    <p className="text-xs font-black mb-4 uppercase text-gray-400 tracking-widest">Select Runner</p>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <button 
-                                            onClick={() => setSelectedChar(player1Src)}
-                                            className={`p-4 rounded-xl border-4 transition-all duration-200 ${selectedChar === player1Src ? 'border-black bg-[#dcfce7] shadow-[4px_4px_0px_black] -translate-y-1' : 'border-gray-200 hover:border-gray-300 opacity-60 hover:opacity-100'}`}
-                                        >
-                                            <img src={player1Src} alt="Player 1" className="w-16 h-16 object-contain mx-auto" />
-                                        </button>
-                                        <button 
-                                            onClick={() => setSelectedChar(player2Src)}
-                                            className={`p-4 rounded-xl border-4 transition-all duration-200 ${selectedChar === player2Src ? 'border-black bg-[#fce7f3] shadow-[4px_4px_0px_black] -translate-y-1' : 'border-gray-200 hover:border-gray-300 opacity-60 hover:opacity-100'}`}
-                                        >
-                                            <img src={player2Src} alt="Player 2" className="w-16 h-16 object-contain mx-auto" />
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
+                            <div className="mb-6 w-full">
+                                <p className="text-xs font-black mb-3 uppercase text-gray-400 tracking-widest">Select Runner</p>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <button 
+                                        onClick={() => setSelectedChar(player1Src)}
+                                        className={`p-4 rounded-xl border-4 transition-all duration-200 ${selectedChar === player1Src ? 'border-black bg-[#dcfce7] shadow-[4px_4px_0px_black] -translate-y-1' : 'border-gray-200 hover:border-gray-300 opacity-60 hover:opacity-100'}`}
+                                    >
+                                        <img src={player1Src} alt="Player 1" className="w-16 h-16 object-contain mx-auto" />
+                                    </button>
+                                    <button 
+                                        onClick={() => setSelectedChar(player2Src)}
+                                        className={`p-4 rounded-xl border-4 transition-all duration-200 ${selectedChar === player2Src ? 'border-black bg-[#fce7f3] shadow-[4px_4px_0px_black] -translate-y-1' : 'border-gray-200 hover:border-gray-300 opacity-60 hover:opacity-100'}`}
+                                    >
+                                        <img src={player2Src} alt="Player 2" className="w-16 h-16 object-contain mx-auto" />
+                                    </button>
                                 </div>
                             </div>
                         )}
-                                                {!isActive && !isGameOver && (
-                            <p className="mb-6 text-base text-gray-500 font-medium">Tap / Click / Space to Jump</p>
+                        {!isActive && !isGameOver && (
+                            <div className="mb-6 text-center">
+                                <p className="text-base text-gray-500 font-medium mb-3">Tap / Click / Space to Jump</p>
+                                <div className="flex flex-wrap gap-2 justify-center">
+                                    <span className="text-[10px] font-bold bg-[#dcfce7] text-gray-600 px-2 py-1 rounded-full border border-gray-200">DOUBLE JUMP</span>
+                                    <span className="text-[10px] font-bold bg-[#e0e7ff] text-gray-600 px-2 py-1 rounded-full border border-gray-200">COMBOS</span>
+                                    <span className="text-[10px] font-bold bg-[#fef3c7] text-gray-600 px-2 py-1 rounded-full border border-gray-200">POWER-UPS</span>
+                                    <span className="text-[10px] font-bold bg-[#fce7f3] text-gray-600 px-2 py-1 rounded-full border border-gray-200">NEAR-MISS BONUS</span>
+                                </div>
+                            </div>
                         )}
 
                             <button 
