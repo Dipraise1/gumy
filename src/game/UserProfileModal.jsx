@@ -34,17 +34,20 @@ const UserProfileModal = ({ walletAddress, onProfileSet }) => {
                 }
             }
 
-            // Insert new user
+            // CRITICAL: Fetch current user data to preserve high_score
+            const { data: currentUser } = await supabase
+                .from('users')
+                .select('high_score')
+                .eq('wallet_address', walletAddress.toLowerCase())
+                .maybeSingle();
+
             const { error: insertError } = await supabase
                 .from('users')
-                .upsert([
-                    { 
-                        wallet_address: walletAddress.toLowerCase(), 
-                        username: username, 
-                        created_at: new Date(),
-                        updated_at: new Date() 
-                    }
-                ], { onConflict: 'wallet_address' });
+                .upsert({
+                    wallet_address: walletAddress.toLowerCase(),
+                    username: username,
+                    high_score: currentUser?.high_score || 0  // Preserve existing score
+                }, { onConflict: 'wallet_address' });
 
             if (insertError) throw insertError;
 

@@ -31,7 +31,10 @@ const GameContent = ({ onHome, onLeaderboard }) => {
     const [totalGUBS, setTotalGUBS] = useState(() => {
         try { return parseInt(localStorage.getItem('gubby_total_gubs') || '0') } catch { return 0 }
     })
-    
+    const [saveStatus, setSaveStatus] = useState(null) // null | 'saving' | 'saved' | 'error'
+    const [leaderboardBest, setLeaderboardBest] = useState(null) // your best score on leaderboard (set after save runs)
+    const [profileHighScore, setProfileHighScore] = useState(null) // high_score from DB (profile when wallet connected)
+
     // Web3 (Wagmi)
     const { address, isConnected } = useAccount();
     const { signMessageAsync } = useSignMessage();
@@ -61,64 +64,85 @@ const GameContent = ({ onHome, onLeaderboard }) => {
             setHighScores(newScores)
             localStorage.setItem('gubby_highscores', JSON.stringify(newScores))
             
-            // Update Total Stats
+            // Update Total Stats (this is what shows in profile and should be on leaderboard)
             const newTotal = totalGUBS + score;
             setTotalGUBS(newTotal);
             localStorage.setItem('gubby_total_gubs', newTotal.toString());
 
-            // SYNC WITH SUPABASE
+            // SYNC TOTAL GUBS TO SUPABASE – leaderboard = same as profile "Total"
             const saveScoreToSupabase = async () => {
-                if (!isConnected || !address || !supabase) return;
-                
+                if (!supabase) {
+                    setSaveStatus('error');
+                    return;
+                }
+                setSaveStatus('saving');
+                let walletKey;
+                if (isConnected && address) {
+                    walletKey = address.toLowerCase();
+                } else {
+                    let guestId = localStorage.getItem('gubby_guest_id');
+                    if (!guestId) {
+                        guestId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now();
+                        localStorage.setItem('gubby_guest_id', guestId);
+                    }
+                    walletKey = 'guest_' + guestId;
+                }
+                const displayName = (isConnected && address) ? null : ('Guest ' + (walletKey.replace(/^guest_/, '').slice(0, 6).toUpperCase() || 'PLAYER'));
+
                 try {
-                    // 1. Fetch current high score
-                     const { data: userData, error: fetchError } = await supabase
+                    const { data: userData, error: fetchError } = await supabase
                         .from('users')
                         .select('high_score, username')
-                        .eq('wallet_address', address.toLowerCase())
+                        .eq('wallet_address', walletKey)
                         .maybeSingle();
 
                     if (fetchError) {
-                         console.error("Error checking high score:", fetchError);
-                         return;
+                        console.error("Error checking user:", fetchError);
+                        setSaveStatus('error');
+                        return;
                     }
 
-                    const currentHighScore = userData?.high_score || 0;
+                    const username = userData?.username || (isConnected && address ? `GUB-${address.slice(2, 8).toUpperCase()}` : displayName);
+                    setLeaderboardBest(newTotal);
+                    setProfileHighScore(newTotal);
 
-                    // 2. Only update if new score is higher
-                    if (score > currentHighScore) {
-                        const { error: upsertError } = await supabase
+                    if (userData) {
+                        const { data: updated, error: updateError } = await supabase
                             .from('users')
-                            .upsert({ 
-                                wallet_address: address.toLowerCase(), 
-                                username: userData?.username || `GUB-${address.slice(2,8).toUpperCase()}`,
-                                high_score: score,
-                                updated_at: new Date()
-                            }, { onConflict: 'wallet_address' }); // Merge update
+                            .update({ high_score: newTotal, username })
+                            .eq('wallet_address', walletKey)
+                            .select('wallet_address');
 
-                         if (upsertError) console.error("Error updating high score:", upsertError);
-                         else console.log("New high score synced to DB!", score);
+                        if (updateError) {
+                            console.error("Error updating total (RLS?):", updateError);
+                            setSaveStatus('error');
+                            return;
+                        }
+                        if (!updated?.length) {
+                            console.error("Update 0 rows – RLS blocking UPDATE. Run supabase-migration-normalize-wallet.sql in Supabase SQL Editor.");
+                            setSaveStatus('error');
+                            return;
+                        }
                     } else {
-                         // Ensure user exists even if score isn't higher (e.g. first play but low score)
-                         // Optional: we might want to just ensure the user record exists.
-                         // For now, let's just leave it. If they created a profile, they exist. 
-                         // If we want to guarantee they exist after playing:
-                         if (!userData) {
-                             await supabase.from('users').upsert({
-                                 wallet_address: address.toLowerCase(),
-                                 username: `GUB-${address.slice(2,8).toUpperCase()}`,
-                                 high_score: score,
-                                 created_at: new Date(),
-                                 updated_at: new Date()
-                             }, { onConflict: 'wallet_address' });
-                         }
+                        const { error: insertError } = await supabase
+                            .from('users')
+                            .insert({ wallet_address: walletKey, username, high_score: newTotal });
+
+                        if (insertError) {
+                            console.error("Error inserting:", insertError);
+                            setSaveStatus('error');
+                            return;
+                        }
                     }
 
+                    setSaveStatus('saved');
+                    window.dispatchEvent(new CustomEvent('gubby-leaderboard-invalidated'));
                 } catch (err) {
-                    console.error("Failed to sync score:", err);
+                    console.error("Failed to sync total:", err);
+                    setSaveStatus('error');
                 }
             };
-            
+
             saveScoreToSupabase();
         }
     }, [isGameOver, isActive, score, isConnected, address]) 
@@ -127,6 +151,8 @@ const GameContent = ({ onHome, onLeaderboard }) => {
         setIsActive(true)
         setIsGameOver(false)
         setScore(0)
+        setSaveStatus(null)
+        setLeaderboardBest(null)
         setShowProfile(false)
     }
     
@@ -149,7 +175,7 @@ const GameContent = ({ onHome, onLeaderboard }) => {
         const fetchProfileAndSync = async () => {
             if (isConnected && address && supabase) {
                 try {
-                    // 1. Fetch Profile
+                    // 1. Fetch Wallet Profile
                     const { data, error } = await supabase
                         .from('users')
                         .select('username, high_score')
@@ -158,31 +184,60 @@ const GameContent = ({ onHome, onLeaderboard }) => {
 
                     if (error) {
                          console.error("Error fetching profile:", error);
-                    } else if (data?.username) {
-                        setUsername(data.username);
+                    } else {
+                        if (data?.username) setUsername(data.username);
+                        setProfileHighScore(data?.high_score != null ? Number(data.high_score) : null);
                     }
 
-                    // 2. Sync Local High Score -> DB (Recovery Logic)
-                    // If the user played while the DB was broken, their local score is higher.
-                    const localBest = highScores.length > 0 ? helperGetMaxScore(highScores) : 0;
-                    const remoteBest = data?.high_score || 0;
-
-                    if (localBest > remoteBest) {
-                        console.log(`Recovering score: Local ${localBest} > Remote ${remoteBest}`);
-                        await supabase.from('users').upsert({
-                            wallet_address: address.toLowerCase(),
-                            username: data?.username || `GUB-${address.slice(2,8).toUpperCase()}`,
-                            high_score: localBest,
-                            updated_at: new Date()
-                        }, { onConflict: 'wallet_address' });
+                    // 2. Merge Guest Score if exists
+                    const guestId = localStorage.getItem('gubby_guest_id');
+                    let guestScore = 0;
+                    
+                    if (guestId) {
+                        const guestKey = 'guest_' + guestId;
+                        const { data: guestData } = await supabase
+                            .from('users')
+                            .select('high_score')
+                            .eq('wallet_address', guestKey)
+                            .maybeSingle();
                         
-                        // Notify user visibly
-                        // alert(`Successfully synced your offline high score of ${localBest} to the leaderboard!`);
-                        console.log("Score recovered successfully!");
-                    } else if (remoteBest > localBest) {
-                        // Optional: Sync DB -> Local? 
-                        // For now, let's just respect the DB as truth if it's higher, 
-                        // but usually we trust local for games unless cheated.
+                        if (guestData?.high_score) {
+                            guestScore = Number(guestData.high_score);
+                            console.log(`Found guest account with score: ${guestScore}`);
+                        }
+                    }
+
+                    // 3. Combine scores: wallet DB + guest DB + local
+                    const localBest = totalGUBS; // Use totalGUBS instead of highScores for cumulative total
+                    const remoteBest = data?.high_score || 0;
+                    const combinedScore = Math.max(localBest, remoteBest + guestScore);
+
+                    if (combinedScore > remoteBest) {
+                        console.log(`Merging scores: Wallet DB ${remoteBest} + Guest ${guestScore} + Local ${localBest} = ${combinedScore}`);
+                        
+                        // Update wallet account with combined score
+                        const { error: updateErr } = await supabase.from('users')
+                            .upsert({
+                                wallet_address: address.toLowerCase(),
+                                username: data?.username || `GUB-${address.slice(2,8).toUpperCase()}`,
+                                high_score: combinedScore
+                            }, { onConflict: 'wallet_address' });
+                        
+                        if (!updateErr) {
+                            setProfileHighScore(combinedScore);
+                            console.log("Scores merged successfully!");
+                            
+                            // Delete guest account to avoid duplicate leaderboard entries
+                            if (guestId && guestScore > 0) {
+                                const guestKey = 'guest_' + guestId;
+                                await supabase.from('users').delete().eq('wallet_address', guestKey);
+                                console.log("Guest account removed from leaderboard");
+                            }
+                            
+                            window.dispatchEvent(new CustomEvent('gubby-leaderboard-invalidated'));
+                        } else {
+                            console.error("Score merge failed:", updateErr);
+                        }
                     }
 
                 } catch (e) {
@@ -190,11 +245,12 @@ const GameContent = ({ onHome, onLeaderboard }) => {
                 }
             } else {
                 setUsername(null);
+                setProfileHighScore(null);
             }
         };
 
         fetchProfileAndSync();
-    }, [isConnected, address, highScores]);
+    }, [isConnected, address, totalGUBS, showProfile]);
 
     // Helper to get max score safely
     const helperGetMaxScore = (scoresArray) => {
@@ -247,14 +303,22 @@ const GameContent = ({ onHome, onLeaderboard }) => {
                         
                         <div className="grid grid-cols-2 gap-4 mb-6">
                             <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                                <p className="text-[10px] text-gray-400 uppercase font-bold mb-1">Total Earned</p>
-                                <p className="text-xl font-black text-[#9333ea]">{totalGUBS.toLocaleString()}</p>
+                                <p className="text-[10px] text-gray-400 uppercase font-bold mb-1">Total</p>
+                                <p className="text-xl font-black text-[#9333ea]">
+                                    {isConnected
+                                        ? (profileHighScore != null ? profileHighScore.toLocaleString() : totalGUBS.toLocaleString())
+                                        : totalGUBS.toLocaleString()}
+                                </p>
+                                {isConnected && <p className="text-[10px] text-gray-400 mt-1">Same number on leaderboard</p>}
                             </div>
                             <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
                                 <p className="text-[10px] text-gray-400 uppercase font-bold mb-1">Rank</p>
-                                <p className="text-xl font-black text-[#10b981]">{currentRank.title}</p>
+                                <p className="text-xl font-black text-[#10b981]">
+                                    {isConnected && profileHighScore != null
+                                        ? getRank(profileHighScore).title
+                                        : currentRank.title}
+                                </p>
                             </div>
-
                         </div>
 
 
@@ -273,21 +337,26 @@ const GameContent = ({ onHome, onLeaderboard }) => {
                         )}
 
                         <div className="mb-6 bg-gray-100 p-4 rounded border border-gray-200">
-                            <p className="text-xs text-gray-500 uppercase mb-1">Rank</p>
-                            <p className="text-xl font-bold text-[#10b981] mb-2">{currentRank.title}</p>
-                            
-                            {/* Progress Bar */}
-                            {currentRank.next ? (
-                                <div>
-                                    <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden mb-2">
-                                        <div className="bg-[#10b981] h-full transition-all duration-500" style={{ width: `${progress}%` }}></div>
+                            <p className="text-xs text-gray-500 uppercase mb-1">Rank progress</p>
+                            <p className="text-xl font-bold text-[#10b981] mb-2">
+                                {(isConnected && profileHighScore != null ? getRank(profileHighScore) : currentRank).title}
+                            </p>
+                            {(() => {
+                                const rankForProgress = isConnected && profileHighScore != null ? getRank(profileHighScore) : currentRank;
+                                const pointsForProgress = isConnected && profileHighScore != null ? profileHighScore : totalGUBS;
+                                const progressPct = rankForProgress.next ? ((pointsForProgress - rankForProgress.min) / (rankForProgress.next - rankForProgress.min)) * 100 : 100;
+                                return rankForProgress.next ? (
+                                    <div>
+                                        <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden mb-2">
+                                            <div className="bg-[#10b981] h-full transition-all duration-500" style={{ width: `${progressPct}%` }}></div>
+                                        </div>
+                                        <p className="text-[10px] text-gray-400 text-right">{(rankForProgress.next - pointsForProgress).toLocaleString()} GUBS to next rank</p>
                                     </div>
-                                    <p className="text-[10px] text-gray-400 text-right">{(currentRank.next - totalGUBS).toLocaleString()} GUBS to next rank</p>
-                                </div>
-                            ) : (
-                                <p className="text-xs text-yellow-500 font-bold">MAX RANK</p>
-                            )}
-                    </div>
+                                ) : (
+                                    <p className="text-xs text-yellow-500 font-bold">MAX RANK</p>
+                                );
+                            })()}
+                        </div>
                     </div>
                     </div>
                 )}
@@ -338,12 +407,21 @@ const GameContent = ({ onHome, onLeaderboard }) => {
                         <div className="bg-white/95 backdrop-blur-xl p-8 md:p-12 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] border-4 border-black flex flex-col items-center text-center max-w-md w-full animate-fadeIn">
                             
                             {isGameOver && (
-                                  <div className="mb-8">
+                                  <div className="mb-6">
                                      <h2 className="text-gray-900 text-4xl font-black mb-2 tracking-tighter uppercase italic">Wasted</h2>
                                      <div className="text-5xl md:text-6xl font-black text-[#9333ea] drop-shadow-sm font-mono">
                                          {score}
                                      </div>
-                                     <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-2">Final Score</p>
+                                     <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-2">This run</p>
+                                     {leaderboardBest != null && (
+                                       <p className="text-xs text-gray-600 mt-1">
+                                         Best on leaderboard: <span className="font-black text-[#9333ea]">{leaderboardBest.toLocaleString()}</span>
+                                         {score >= leaderboardBest && score > 0 && <span className="block text-green-600 font-bold mt-0.5">New high score!</span>}
+                                       </p>
+                                     )}
+                                     {saveStatus === 'saving' && <p className="text-xs text-amber-600 font-bold mt-2">Saving to leaderboard…</p>}
+                                     {saveStatus === 'saved' && <p className="text-xs text-green-600 font-bold mt-2">✓ Leaderboard updated</p>}
+                                     {saveStatus === 'error' && <p className="text-xs text-red-600 font-bold mt-2">Could not save. Check Supabase setup.</p>}
                                  </div>
                             )}
 

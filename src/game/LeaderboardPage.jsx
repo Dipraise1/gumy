@@ -1,11 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import Navbar from './Navbar';
-import { supabase } from '../supabaseClient';
+import { supabase, debugConnection } from '../supabaseClient';
 
 const LeaderboardPage = ({ onBack }) => {
     const [scores, setScores] = useState([]);
     const [loading, setLoading] = useState(true);
     const [debugError, setDebugError] = useState(null);
+    const [connectionResult, setConnectionResult] = useState(null);
+    const [connectionLoading, setConnectionLoading] = useState(false);
+    const [showConnectionDetails, setShowConnectionDetails] = useState(false);
+
+    const runConnectionDebug = async () => {
+        setConnectionLoading(true);
+        setConnectionResult(null);
+        try {
+            const result = await debugConnection();
+            setConnectionResult(result);
+            console.log('Supabase debug:', result);
+        } finally {
+            setConnectionLoading(false);
+        }
+    };
 
     const fetchLeaderboard = async () => {
         setLoading(true);
@@ -18,29 +33,27 @@ const LeaderboardPage = ({ onBack }) => {
         }
 
         try {
-            console.log("Fetching leaderboard...");
             const { data, error } = await supabase
                 .from('users')
                 .select('username, high_score')
-                // .not('high_score', 'is', null) // Temporarily commented out to debug
+                .gt('high_score', 0)
                 .order('high_score', { ascending: false })
                 .limit(50);
 
             if (error) throw error;
-            
-            console.log("Leaderboard data:", data);
 
-            // Format for UI
             const formattedScores = (data || []).map((user, index) => ({
                 rank: index + 1,
-                name: user.username || `GUB #${index + 420}`, 
-                score: user.high_score || 0
+                name: user.username || `GUB #${index + 420}`,
+                score: Number(user.high_score) || 0
             }));
 
             setScores(formattedScores);
         } catch (err) {
             console.error("Error fetching leaderboard:", err);
-            setDebugError(err.message || "Unknown error fetching data");
+            const msg = err.message || "Unknown error";
+            const code = err.code ? ` (${err.code})` : "";
+            setDebugError(msg + code + ". Run supabase-schema.sql in Supabase SQL Editor if the table or RLS is missing.");
         } finally {
             setLoading(false);
         }
@@ -48,6 +61,23 @@ const LeaderboardPage = ({ onBack }) => {
 
     useEffect(() => {
         fetchLeaderboard();
+        const delayedRefetch = setTimeout(() => fetchLeaderboard(), 2500);
+        return () => clearTimeout(delayedRefetch);
+    }, []);
+
+    useEffect(() => {
+        runConnectionDebug();
+    }, []);
+
+    useEffect(() => {
+        const onFocus = () => fetchLeaderboard();
+        const onInvalidated = () => fetchLeaderboard();
+        window.addEventListener('focus', onFocus);
+        window.addEventListener('gubby-leaderboard-invalidated', onInvalidated);
+        return () => {
+            window.removeEventListener('focus', onFocus);
+            window.removeEventListener('gubby-leaderboard-invalidated', onInvalidated);
+        };
     }, []);
 
     return (
@@ -60,7 +90,6 @@ const LeaderboardPage = ({ onBack }) => {
             <div className="flex-1 min-h-0 flex flex-col items-center px-4 pb-6">
                 
                 <div className="w-full max-w-2xl flex items-center justify-between mb-4">
-                    {/* Back Button (Visible on all screens) */}
                     <button 
                         onClick={onBack}
                         className="flex w-10 h-10 bg-white border-2 border-black rounded-lg items-center justify-center font-bold hover:bg-gray-100 shadow-[2px_2px_0px_black] active:translate-y-[1px] active:shadow-none transition-all mr-4"
@@ -69,14 +98,24 @@ const LeaderboardPage = ({ onBack }) => {
                         ✕
                     </button>
                     <h1 className="text-3xl md:text-5xl font-black uppercase tracking-tighter italic flex-1 text-center md:text-left">GUBBOARD</h1>
-                     <a 
-                        href="https://x.com/gubyverse" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="w-10 h-10 bg-black text-white flex items-center justify-center font-black text-lg rounded-lg hover:rotate-12 transition-transform"
-                    >
-                        𝕏
-                    </a>
+                    <div className="flex items-center gap-2">
+                        <button 
+                            onClick={() => fetchLeaderboard()}
+                            disabled={loading}
+                            className="w-10 h-10 bg-white border-2 border-black rounded-lg flex items-center justify-center font-bold hover:bg-gray-100 shadow-[2px_2px_0px_black] disabled:opacity-50"
+                            title="Refresh"
+                        >
+                            ↻
+                        </button>
+                        <a 
+                            href="https://x.com/gubyverse" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="w-10 h-10 bg-black text-white flex items-center justify-center font-black text-lg rounded-lg hover:rotate-12 transition-transform"
+                        >
+                            𝕏
+                        </a>
+                    </div>
                 </div>
 
                 {/* Board Container - Flex Column to handle internal scroll */}
@@ -103,9 +142,10 @@ const LeaderboardPage = ({ onBack }) => {
                                 <button onClick={fetchLeaderboard} className="bg-black text-white px-4 py-2 rounded font-bold text-xs hover:bg-gray-800">RETRY</button>
                             </div>
                         ) : scores.length === 0 ? (
-                            <div className="flex-1 flex flex-col items-center justify-center font-bold text-gray-400">
+                            <div className="flex-1 flex flex-col items-center justify-center font-bold text-gray-400 text-center px-4">
                                 <span>NO SCORES YET</span>
-                                <button onClick={fetchLeaderboard} className="mt-4 text-xs underline text-black">REFRESH</button>
+                                <p className="text-[10px] font-normal text-gray-400 mt-2 max-w-xs">Play a game to save. If you ran a game and still see this, run <code className="bg-gray-200 px-1 rounded">supabase-schema.sql</code> in Supabase → SQL Editor.</p>
+                                <button onClick={fetchLeaderboard} className="mt-4 text-xs underline text-black hover:no-underline">REFRESH</button>
                             </div>
                         ) : (
                             scores.map((player) => (

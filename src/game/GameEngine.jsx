@@ -9,14 +9,21 @@ const GameEngine = ({ isActive, isPaused, score, setScore, setGameOver, charSrc 
   // Responsive sizing
   useEffect(() => {
     const handleResize = () => {
+      const isDesktop = window.innerWidth > 1024;
       const isLandscape = window.innerWidth > window.innerHeight;
-      const width = window.innerWidth > 1024
-        ? Math.min(window.innerWidth - 40, 1600)
-        : (isLandscape ? window.innerWidth : Math.min(window.innerWidth - 20, 1200));
-      const height = window.innerWidth > 1024
-        ? 700
-        : (isLandscape ? window.innerHeight : (width < 600 ? 320 : 500));
-      setDimensions({ width, height });
+      
+      if (isDesktop) {
+        // PC: Fullscreen immersive mode
+        setDimensions({ 
+          width: window.innerWidth, 
+          height: window.innerHeight 
+        });
+      } else {
+        // Mobile: Responsive sizing
+        const width = isLandscape ? window.innerWidth : Math.min(window.innerWidth - 20, 1200);
+        const height = isLandscape ? window.innerHeight : (width < 600 ? 320 : 500);
+        setDimensions({ width, height });
+      }
     };
     window.addEventListener('resize', handleResize);
     handleResize();
@@ -31,14 +38,16 @@ const GameEngine = ({ isActive, isPaused, score, setScore, setGameOver, charSrc 
     dying: false,
     deathTimer: 0,
     landingFlash: 0,
+    lastTime: 0,
+    deltaTime: 0,
     player: {
       x: 80,
       y: 0,
       vy: 0,
       width: 48,
       height: 48,
-      jumpsLeft: 2,
-      maxJumps: 2,
+      jumpsLeft: 4,
+      maxJumps: 4,
       isJumping: false,
       jumpStrength: 15,
       gravity: 0.8,
@@ -121,12 +130,26 @@ const GameEngine = ({ isActive, isPaused, score, setScore, setGameOver, charSrc 
     if (player.jumpsLeft > 0) {
       player.scaleX = 0.75;
       player.scaleY = 1.3;
-      const isSecondJump = player.jumpsLeft < player.maxJumps;
-      player.vy = player.jumpStrength * (isSecondJump ? 0.85 : 1);
+      const jumpNumber = player.maxJumps - player.jumpsLeft + 1;
+      const isFirstJump = jumpNumber === 1;
+      const isSecondJump = jumpNumber === 2;
+      const isThirdJump = jumpNumber === 3;
+      const isFourthJump = jumpNumber === 4;
+      
+      // Jump strength decreases with each jump
+      player.vy = player.jumpStrength * (isFirstJump ? 1 : isSecondJump ? 0.85 : isThirdJump ? 0.75 : 0.65);
       player.isJumping = true;
       player.jumpsLeft--;
-      spawnParticles(player.x + player.width / 2, player.y + player.height, 'rgba(160,160,160,0.5)', isSecondJump ? 12 : 8, 'dust');
-      if (isSecondJump) {
+      
+      spawnParticles(player.x + player.width / 2, player.y + player.height, 'rgba(160,160,160,0.5)', isFirstJump ? 8 : 12, 'dust');
+      
+      if (isFourthJump) {
+        SoundManager.playDoubleJump();
+        spawnParticles(player.x + player.width / 2, player.y + player.height / 2, 'rgba(255,215,0,0.7)', 10, 'sparkle');
+      } else if (isThirdJump) {
+        SoundManager.playDoubleJump();
+        spawnParticles(player.x + player.width / 2, player.y + player.height / 2, 'rgba(200,100,255,0.6)', 8, 'sparkle');
+      } else if (isSecondJump) {
         SoundManager.playDoubleJump();
         spawnParticles(player.x + player.width / 2, player.y + player.height / 2, 'rgba(100,200,255,0.5)', 6, 'sparkle');
       } else {
@@ -189,18 +212,18 @@ const GameEngine = ({ isActive, isPaused, score, setScore, setGameOver, charSrc 
       player.trail.unshift({ x: player.x, y: player.y, a: 0.5 });
       if (player.trail.length > 6) player.trail.pop();
     } else {
-      player.trail.forEach(t => t.a -= 0.08);
+      player.trail.forEach(t => t.a -= 0.08 * s.deltaTime);
       player.trail = player.trail.filter(t => t.a > 0);
     }
 
     // Power-up timers
-    if (player.invincible) { player.invincibleTimer--; if (player.invincibleTimer <= 0) player.invincible = false; }
-    if (player.magnetActive) { player.magnetTimer--; if (player.magnetTimer <= 0) player.magnetActive = false; }
-    if (player.slowActive) { player.slowTimer--; if (player.slowTimer <= 0) player.slowActive = false; }
+    if (player.invincible) { player.invincibleTimer -= s.deltaTime; if (player.invincibleTimer <= 0) player.invincible = false; }
+    if (player.magnetActive) { player.magnetTimer -= s.deltaTime; if (player.magnetTimer <= 0) player.magnetActive = false; }
+    if (player.slowActive) { player.slowTimer -= s.deltaTime; if (player.slowTimer <= 0) player.slowActive = false; }
 
     // Combo timer
     if (combo.count > 0) {
-      combo.timer--;
+      combo.timer -= s.deltaTime;
       if (combo.timer <= 0) {
         if (combo.count > combo.maxCombo) combo.maxCombo = combo.count;
         combo.count = 0;
@@ -208,11 +231,11 @@ const GameEngine = ({ isActive, isPaused, score, setScore, setGameOver, charSrc 
     }
 
     // Landing flash decay
-    if (s.landingFlash > 0) s.landingFlash -= 0.08;
+    if (s.landingFlash > 0) s.landingFlash -= 0.08 * s.deltaTime;
 
     // --- Spawning ---
-    const spawnGap = Math.max(40, 70 - Math.floor(s.distance / 600));
-    if (s.frames - s.lastSpawnFrame >= spawnGap && Math.random() > 0.25) {
+    const spawnGap = Math.max(60, 80 - Math.floor(s.distance / 600));
+    if (s.frames - s.lastSpawnFrame >= spawnGap && Math.random() > 0.35) {
       s.lastSpawnFrame = s.frames;
       const r = Math.random();
 
@@ -220,7 +243,7 @@ const GameEngine = ({ isActive, isPaused, score, setScore, setGameOver, charSrc 
         // Double pattern — needs double jump
         const h = 30 + Math.random() * 8;
         obstacles.push({ x: W, y: GROUND - h, width: 28, height: h, type: 'RUG', passed: false });
-        obstacles.push({ x: W + 75, y: GROUND - h, width: 28, height: h, type: 'RUG', passed: false });
+        obstacles.push({ x: W + 100, y: GROUND - h, width: 28, height: h, type: 'RUG', passed: false });
       } else if (r > 0.55) {
         const h = 48 + Math.random() * 20;
         obstacles.push({ x: W, y: GROUND - h, width: 26, height: h, type: 'REKT', passed: false });
@@ -355,17 +378,20 @@ const GameEngine = ({ isActive, isPaused, score, setScore, setGameOver, charSrc 
     // Particles
     for (let i = s.particles.length - 1; i >= 0; i--) {
       const p = s.particles[i];
-      p.x += p.vx; p.y += p.vy; p.life -= 0.03;
-      if (p.type === 'dust') { p.vy -= 0.15; p.vx *= 0.95; }
-      else if (p.type === 'explosion') { p.vy += 0.15; p.vx *= 0.97; }
-      else { p.vy += 0.08; }
+      p.x += p.vx * s.deltaTime;
+      p.y += p.vy * s.deltaTime;
+      p.life -= 0.03 * s.deltaTime;
+      if (p.type === 'dust') { p.vy -= 0.15 * s.deltaTime; p.vx *= Math.pow(0.95, s.deltaTime); }
+      else if (p.type === 'explosion') { p.vy += 0.15 * s.deltaTime; p.vx *= Math.pow(0.97, s.deltaTime); }
+      else { p.vy += 0.08 * s.deltaTime; }
       if (p.life <= 0) s.particles.splice(i, 1);
     }
 
     // Score popups
     for (let i = s.scorePopups.length - 1; i >= 0; i--) {
       const p = s.scorePopups[i];
-      p.y -= 1.2; p.life -= 0.02;
+      p.y -= 1.2 * s.deltaTime;
+      p.life -= 0.02 * s.deltaTime;
       if (p.life <= 0) s.scorePopups.splice(i, 1);
     }
 
@@ -374,12 +400,12 @@ const GameEngine = ({ isActive, isPaused, score, setScore, setGameOver, charSrc 
     if (sh.intensity > 0.5) {
       sh.x = (Math.random() - 0.5) * sh.intensity;
       sh.y = (Math.random() - 0.5) * sh.intensity;
-      sh.intensity *= 0.85;
+      sh.intensity *= Math.pow(0.85, s.deltaTime);
     } else { sh.x = 0; sh.y = 0; sh.intensity = 0; }
 
     // Clouds
     s.clouds.forEach(c => {
-      c.x -= c.spd;
+      c.x -= c.spd * s.deltaTime;
       if (c.x + c.w < 0) { c.x = W + Math.random() * 200; c.y = 20 + Math.random() * 100; }
     });
   };
@@ -621,7 +647,7 @@ const GameEngine = ({ isActive, isPaused, score, setScore, setGameOver, charSrc 
       for (let j = 0; j < player.maxJumps; j++) {
         ctx.fillStyle = j < player.jumpsLeft ? 'rgba(16,185,129,0.85)' : 'rgba(150,150,150,0.3)';
         ctx.beginPath();
-        ctx.arc(player.x + player.width / 2 - 9 + j * 18, player.y - 12, 4.5, 0, Math.PI * 2);
+        ctx.arc(player.x + player.width / 2 - 22.5 + j * 15, player.y - 12, 4.5, 0, Math.PI * 2);
         ctx.fill();
       }
     }
@@ -715,12 +741,21 @@ const GameEngine = ({ isActive, isPaused, score, setScore, setGameOver, charSrc 
   };
 
   // ---------- ANIMATE ----------
-  const animate = () => {
+  const animate = (currentTime) => {
     const canvas = canvasRef.current;
     if (!canvas || !isActive) return;
     const ctx = canvas.getContext('2d');
     const W = canvas.width;
     const H = canvas.height;
+
+    const s = state.current;
+    
+    // Calculate delta time (target 60 FPS = 16.67ms per frame)
+    if (!s.lastTime) s.lastTime = currentTime;
+    const deltaMs = currentTime - s.lastTime;
+    s.lastTime = currentTime;
+    // Delta multiplier: 1.0 at 60fps, 0.5 at 120fps, 2.0 at 30fps
+    s.deltaTime = deltaMs / 16.67;
 
     // Paused
     if (isPaused) {
@@ -731,11 +766,9 @@ const GameEngine = ({ isActive, isPaused, score, setScore, setGameOver, charSrc 
       return;
     }
 
-    const s = state.current;
-
     // Death sequence
     if (s.dying) {
-      s.deathTimer--;
+      s.deathTimer -= s.deltaTime;
       updateEffects(W);
       drawAll(ctx, W, H);
       // Red flash
@@ -749,8 +782,8 @@ const GameEngine = ({ isActive, isPaused, score, setScore, setGameOver, charSrc 
     // Normal frame
     s.frames++;
     const spdMult = s.player.slowActive ? 0.6 : 1;
-    s.distance += s.speed * spdMult;
-    s.speed += 0.00012;
+    s.distance += s.speed * spdMult * s.deltaTime;
+    s.speed += 0.00012 * s.deltaTime;
     setScore(Math.floor(s.distance / 10));
 
     // Milestones
@@ -802,8 +835,8 @@ const GameEngine = ({ isActive, isPaused, score, setScore, setGameOver, charSrc 
       ref={canvasRef}
       width={dimensions.width}
       height={dimensions.height}
-      className="max-w-full rounded-b-lg"
-      style={{ display: 'block' }}
+      className={`max-w-full ${dimensions.width > 1024 ? 'fixed inset-0 w-screen h-screen' : 'rounded-b-lg'}`}
+      style={{ display: 'block', touchAction: 'none' }}
     />
   );
 };
